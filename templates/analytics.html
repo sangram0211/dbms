@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}Visual Analytics & Charts{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-4">
+
+    <!-- Header Section -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h3 class="fw-bold mb-1">Visual Analytics & Reports</h3>
+            <p class="text-muted small mb-0">Deep dive into your spending habits, trends, and payment breakdowns.</p>
+        </div>
+
+        <!-- Month & Year Filter Form -->
+        <form method="GET" action="{{ url_for('analytics') }}" class="d-flex align-items-center gap-2">
+            <select name="month" class="form-select form-select-sm" style="width: 140px;">
+                {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if selected_month == m %}selected{% endif %}>
+                        {{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m-1] }}
+                    </option>
+                {% endfor %}
+            </select>
+            <select name="year" class="form-select form-select-sm" style="width: 100px;">
+                {% for y in range(now.year - 2, now.year + 2) %}
+                    <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm px-3 rounded-pill">Apply</button>
+        </form>
+    </div>
+
+    <!-- Charts Row 1: Category Breakdown & Payment Methods -->
+    <div class="row g-3 mb-4">
+        <!-- Chart 1: Category Distribution Doughnut -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-pie-chart text-primary"></i> Category Distribution
+                    </h6>
+                    <span class="badge bg-light text-dark border">Selected Month</span>
+                </div>
+                <div class="card-body d-flex flex-column justify-content-center align-items-center p-4">
+                    {% if category_data %}
+                        <div style="position: relative; width: 100%; height: 320px;">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-pie-chart fs-1 opacity-25"></i>
+                            <p class="mt-2 mb-0">No expense data found for this month.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 2: Payment Method Breakdown -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-credit-card text-success"></i> Payment Methods Breakdown
+                    </h6>
+                    <span class="badge bg-light text-dark border">All Time</span>
+                </div>
+                <div class="card-body d-flex flex-column justify-content-center align-items-center p-4">
+                    {% if payment_data %}
+                        <div style="position: relative; width: 100%; height: 320px;">
+                            <canvas id="paymentChart"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-wallet2 fs-1 opacity-25"></i>
+                            <p class="mt-2 mb-0">No payment data available.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2: Annual Trend & Daily Timeline -->
+    <div class="row g-3 mb-4">
+        <!-- Chart 3: Annual 12-Month Spending Trend -->
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-graph-up text-primary"></i> Monthly Spending Trend ({{ selected_year }})
+                    </h6>
+                    <span class="badge bg-light text-dark border">Annual Overview</span>
+                </div>
+                <div class="card-body p-4">
+                    <div style="position: relative; width: 100%; height: 300px;">
+                        <canvas id="monthlyTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 4: Daily Spending Timeline for selected month -->
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-calendar3 text-warning"></i> Daily Spending Timeline
+                    </h6>
+                    <span class="badge bg-light text-dark border">{{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][selected_month-1] }} {{ selected_year }}</span>
+                </div>
+                <div class="card-body p-4">
+                    {% if daily_trend %}
+                        <div style="position: relative; width: 100%; height: 300px;">
+                            <canvas id="dailyTrendChart"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-calendar-x fs-1 opacity-25"></i>
+                            <p class="mt-2 mb-0">No daily spending recorded for this month.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top 5 Single Largest Expenses -->
+    <div class="card border-0">
+        <div class="card-header bg-white border-bottom py-3">
+            <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                <i class="bi bi-trophy text-danger"></i> Top 5 Single Largest Expenses
+            </h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr class="text-muted small">
+                            <th>Rank</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Date</th>
+                            <th>Payment Method</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exp in top_expenses %}
+                        <tr>
+                            <td>
+                                <span class="badge rounded-pill bg-light text-dark border fw-bold px-2 py-1">
+                                    #{{ loop.index }}
+                                </span>
+                            </td>
+                            <td class="fw-semibold text-dark">{{ exp.description }}</td>
+                            <td>
+                                <span class="badge" style="background-color: {{ exp.category_color }}; color: #fff;">
+                                    <i class="bi {{ exp.category_icon }} me-1"></i> {{ exp.category_name }}
+                                </span>
+                            </td>
+                            <td class="text-muted small">{{ exp.expense_date }}</td>
+                            <td class="text-muted small">{{ exp.payment_method }}</td>
+                            <td class="text-end fw-bold text-danger">{{ exp.amount|format_currency }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No expenses logged yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    // 1. Category Doughnut Chart
+    {% if category_data %}
+    const catLabels = {{ category_data|map(attribute='category_name')|list|tojson }};
+    const catAmounts = {{ category_data|map(attribute='total_spent')|list|tojson }};
+    const catColors = {{ category_data|map(attribute='category_color')|list|tojson }};
+
+    new Chart(document.getElementById('categoryChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: catLabels,
+            datasets: [{
+                data: catAmounts,
+                backgroundColor: catColors,
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12, font: { size: 11 } } },
+                tooltip: {
+                    callbacks: {
+                        label: function(c) {
+                            return ` ${c.label}: {{ currency_symbol }}${parseFloat(c.raw).toFixed(2)}`;
+                        }
+                    }
+                }
+            },
+            cutout: '60%'
+        }
+    });
+    {% endif %}
+
+    // 2. Payment Method Chart
+    {% if payment_data %}
+    const payLabels = {{ payment_data|map(attribute='method_name')|list|tojson }};
+    const payAmounts = {{ payment_data|map(attribute='total_spent')|list|tojson }};
+    const payPalette = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'];
+
+    new Chart(document.getElementById('paymentChart').getContext('2d'), {
+        type: 'pie',
+        data: {
+            labels: payLabels,
+            datasets: [{
+                data: payAmounts,
+                backgroundColor: payPalette.slice(0, payLabels.length),
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12, font: { size: 11 } } },
+                tooltip: {
+                    callbacks: {
+                        label: function(c) {
+                            return ` ${c.label}: {{ currency_symbol }}${parseFloat(c.raw).toFixed(2)}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // 3. Monthly Trend Chart (12 Months)
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlySpending = new Array(12).fill(0);
+    {% for m in monthly_trend %}
+        monthlySpending[{{ m.month_num - 1 }}] = {{ m.total_spent }};
+    {% endfor %}
+
+    new Chart(document.getElementById('monthlyTrendChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: monthNames,
+            datasets: [{
+                type: 'bar',
+                label: 'Monthly Spending ({{ currency_symbol }})',
+                data: monthlySpending,
+                backgroundColor: 'rgba(79, 70, 229, 0.75)',
+                borderRadius: 6,
+                borderSkipped: false
+            }, {
+                type: 'line',
+                label: 'Trend Line',
+                data: monthlySpending,
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.35,
+                fill: false,
+                borderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) { return '{{ currency_symbol }}' + value; }
+                    },
+                    grid: { color: '#f1f5f9' }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            },
+            plugins: {
+                legend: { position: 'top', align: 'end' },
+                tooltip: {
+                    callbacks: {
+                        label: function(c) { return ` ${c.dataset.label}: {{ currency_symbol }}${parseFloat(c.raw).toFixed(2)}`; }
+                    }
+                }
+            }
+        }
+    });
+
+    // 4. Daily Trend Chart
+    {% if daily_trend %}
+    const dailyLabels = {{ daily_trend|map(attribute='expense_date')|list|tojson }};
+    const dailyAmounts = {{ daily_trend|map(attribute='daily_total')|list|tojson }};
+
+    new Chart(document.getElementById('dailyTrendChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: dailyLabels.map(d => d.split('-')[2]), // display just day of month
+            datasets: [{
+                label: 'Daily Spent ({{ currency_symbol }})',
+                data: dailyAmounts,
+                backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { callback: function(v) { return '{{ currency_symbol }}' + v; } },
+                    grid: { color: '#f1f5f9' }
+                },
+                x: {
+                    grid: { display: false },
+                    title: { display: true, text: 'Day of Month' }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: function(items) { return `Date: ${dailyLabels[items[0].dataIndex]}`; },
+                        label: function(c) { return ` Spent: {{ currency_symbol }}${parseFloat(c.raw).toFixed(2)}`; }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+
+});
+</script>
+{% endblock %}

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Personal Expense Tracker{% endblock %} | DBMS Project</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            --sidebar-bg: #0f172a;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+        }
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar-brand-gradient {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        .card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.2s ease-in-out;
+        }
+        .card:hover {
+            box-shadow: var(--card-hover-shadow);
+        }
+        .stat-card {
+            border-left: 4px solid #4f46e5;
+        }
+        .nav-link.active {
+            color: #4f46e5 !important;
+            font-weight: 600;
+            border-bottom: 2px solid #4f46e5;
+        }
+        .badge-category {
+            font-weight: 500;
+            padding: 0.35rem 0.65rem;
+            border-radius: 8px;
+        }
+        .engine-badge {
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+        .table-hover tbody tr:hover {
+            background-color: #f1f5f9;
+        }
+        footer {
+            margin-top: auto;
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <!-- Main Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-white bg-white border-bottom sticky-top py-2">
+        <div class="container-fluid px-lg-4">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('dashboard') if session.get('user_id') else url_for('login') }}">
+                <div class="bg-primary text-white rounded-3 p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                    <i class="bi bi-wallet2 fs-5"></i>
+                </div>
+                <span class="fs-5 navbar-brand-gradient">ExpenseTrack<span class="text-secondary fw-normal fs-6 ms-1">DBMS</span></span>
+            </a>
+
+            <!-- Active Database Engine Pill -->
+            <div class="d-none d-md-flex align-items-center me-auto ms-3">
+                {% if active_engine == 'MYSQL' %}
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2.5 py-1.5 rounded-pill engine-badge d-flex align-items-center gap-1.5" title="Connected to MySQL ({{ db_meta.host }}:{{ db_meta.port }}/{{ db_meta.database }})">
+                        <i class="bi bi-database-check"></i>
+                        <span>RDBMS: <strong>MYSQL (Connected)</strong></span>
+                    </span>
+                {% else %}
+                    <a href="{{ url_for('dbms_docs') }}" class="text-decoration-none" title="MySQL is offline. Running on SQLite fallback. Click to view MySQL setup guide.">
+                        <span class="badge bg-warning bg-opacity-10 text-dark border border-warning border-opacity-50 px-2.5 py-1.5 rounded-pill engine-badge d-flex align-items-center gap-1.5">
+                            <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                            <span>RDBMS: <strong>SQLITE (MySQL Offline)</strong></span>
+                        </span>
+                    </a>
+                {% endif %}
+            </div>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarContent">
+                {% if session.get('user_id') %}
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-1">
+                    <li class="nav-item">
+                        <a class="nav-link px-3 {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                            <i class="bi bi-grid-1x2-fill me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-3 {% if request.endpoint == 'expenses' %}active{% endif %}" href="{{ url_for('expenses') }}">
+                            <i class="bi bi-receipt me-1"></i> Expenses
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-3 {% if request.endpoint == 'analytics' %}active{% endif %}" href="{{ url_for('analytics') }}">
+                            <i class="bi bi-pie-chart-fill me-1"></i> Analytics & Charts
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-3 {% if request.endpoint == 'budgets' %}active{% endif %}" href="{{ url_for('budgets') }}">
+                            <i class="bi bi-cash-stack me-1"></i> Budgets
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-3 {% if request.endpoint == 'categories' %}active{% endif %}" href="{{ url_for('categories') }}">
+                            <i class="bi bi-tags-fill me-1"></i> Categories
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-3 {% if request.endpoint == 'audit_logs' %}active{% endif %}" href="{{ url_for('audit_logs') }}">
+                            <i class="bi bi-shield-check me-1"></i> Audit Logs <span class="badge bg-secondary-subtle text-secondary ms-1">Triggers</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-3 {% if request.endpoint == 'dbms_docs' %}active{% endif %}" href="{{ url_for('dbms_docs') }}">
+                            <i class="bi bi-diagram-3-fill me-1"></i> DBMS Schema
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- User Dropdown & Action Buttons -->
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-primary btn-sm d-flex align-items-center gap-1.5 px-3 py-1.5 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#quickAddExpenseModal">
+                        <i class="bi bi-plus-circle-fill"></i> Add Expense
+                    </button>
+
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm rounded-pill dropdown-toggle d-flex align-items-center gap-2 px-3 py-1.5" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle fs-6"></i>
+                            <span class="fw-medium">{{ session.get('username') }}</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                            <li class="px-3 py-2 border-bottom">
+                                <small class="text-muted d-block">Signed in as</small>
+                                <strong>{{ session.get('full_name') }}</strong>
+                            </li>
+                            <li><a class="dropdown-item py-2 text-primary fw-semibold" href="{{ url_for('download_pdf') }}"><i class="bi bi-file-earmark-pdf-fill me-2"></i> Download PDF Report</a></li>
+                            <li><a class="dropdown-item py-2" href="{{ url_for('export_csv') }}"><i class="bi bi-download me-2"></i> Export CSV</a></li>
+                            <li><a class="dropdown-item py-2" href="{{ url_for('dbms_docs') }}"><i class="bi bi-file-earmark-code me-2"></i> Project Documentation</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item py-2 text-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-2"></i> Sign Out</a></li>
+                        </ul>
+                    </div>
+                </div>
+                {% else %}
+                <ul class="navbar-nav ms-auto align-items-center gap-2">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dbms_docs') }}"><i class="bi bi-diagram-3 me-1"></i> DBMS Documentation</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-primary btn-sm px-3 rounded-pill" href="{{ url_for('login') }}">Sign In</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-primary btn-sm px-3 rounded-pill" href="{{ url_for('register') }}">Create Account</a>
+                    </li>
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Alert Messages -->
+    <div class="container-fluid px-lg-4 mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show d-flex align-items-center gap-2 shadow-sm rounded-3" role="alert">
+                        {% if category == 'success' %}<i class="bi bi-check-circle-fill fs-5"></i>
+                        {% elif category == 'danger' %}<i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                        {% elif category == 'warning' %}<i class="bi bi-exclamation-circle-fill fs-5"></i>
+                        {% else %}<i class="bi bi-info-circle-fill fs-5"></i>{% endif %}
+                        <div>{{ message }}</div>
+                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content Block -->
+    <main class="flex-grow-1 pb-5">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Quick Add Expense Modal -->
+    {% if session.get('user_id') %}
+    <div class="modal fade" id="quickAddExpenseModal" tabindex="-1" aria-labelledby="quickAddExpenseLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <form action="{{ url_for('add_expense') }}" method="POST">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title d-flex align-items-center gap-2" id="quickAddExpenseLabel">
+                            <i class="bi bi-plus-circle"></i> Log New Expense
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Amount ({{ currency_symbol }}) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">{{ currency_symbol }}</span>
+                                <input type="number" step="0.01" min="0.01" class="form-control form-control-lg" name="amount" required placeholder="0.00" autofocus>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Category <span class="text-danger">*</span></label>
+                                <select class="form-select" name="category_id" required>
+                                    <option value="" disabled selected>Select category...</option>
+                                    {% for cat in (categories or global_categories or []) %}
+                                        <option value="{{ cat.category_id }}">{{ cat.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Payment Method <span class="text-danger">*</span></label>
+                                <select class="form-select" name="payment_method_id" required>
+                                    <option value="" disabled selected>Select method...</option>
+                                    {% for pm in (payment_methods or global_payment_methods or []) %}
+                                        <option value="{{ pm.payment_method_id }}">{{ pm.method_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Expense Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="expense_date" value="{{ today_date }}" required>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label fw-medium">Description / Notes <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="description" placeholder="e.g. Grocery shopping, flight ticket..." required maxlength="255">
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save me-1"></i> Save Expense</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <footer class="py-3 mt-auto">
+        <div class="container-fluid px-lg-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 text-muted small">
+            <div>
+                <strong>Personal Expense Tracker</strong> &bull; DBMS Mini-Project Architecture (MySQL / SQLite Dual-Engine)
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span>Database: <strong class="text-dark">{{ active_engine }}</strong> ({{ db_meta.database }})</span>
+                <a href="{{ url_for('dbms_docs') }}" class="text-decoration-none text-primary"><i class="bi bi-journal-code me-1"></i>ER Diagram & Viva Specs</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Modal Fallback & Enhanced Interactivity Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Guarantee modal toggle works even if CDN is blocked or delayed
+            document.querySelectorAll('[data-bs-toggle="modal"]').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    const targetId = this.getAttribute('data-bs-target');
+                    if (!targetId) return;
+                    
+                    const modalEl = document.querySelector(targetId);
+                    if (!modalEl) return;
+
+                    // If bootstrap JS loaded properly, trigger standard show
+                    if (window.bootstrap && window.bootstrap.Modal) {
+                        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modalInstance.show();
+                    } else {
+                        // Resilient Native Fallback
+                        modalEl.style.display = 'block';
+                        modalEl.classList.add('show');
+                        document.body.classList.add('modal-open');
+                        if (!document.querySelector('.modal-backdrop')) {
+                            const bd = document.createElement('div');
+                            bd.className = 'modal-backdrop fade show';
+                            document.body.appendChild(bd);
+                        }
+                    }
+                });
+            });
+
+            // Fallback for dismissing modal
+            document.querySelectorAll('[data-bs-dismiss="modal"]').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    const modalEl = this.closest('.modal');
+                    if (modalEl) {
+                        if (window.bootstrap && window.bootstrap.Modal) {
+                            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                            if (modalInstance) modalInstance.hide();
+                        }
+                        modalEl.style.display = 'none';
+                        modalEl.classList.remove('show');
+                        document.body.classList.remove('modal-open');
+                        const bd = document.querySelector('.modal-backdrop');
+                        if (bd) bd.remove();
+                    }
+                });
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

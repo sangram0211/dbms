@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-0 pt-4 pb-2 text-center">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex p-3 mb-2 shadow-sm">
+                        <i class="bi bi-person-plus-fill fs-3"></i>
+                    </div>
+                    <h4 class="fw-bold mb-1">Create an Account</h4>
+                    <p class="text-muted small">Start tracking and budgeting your expenses today</p>
+                </div>
+                <div class="card-body p-4 pt-2">
+                    <form method="POST" action="{{ url_for('register') }}">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" name="full_name" class="form-control" placeholder="e.g. John Doe" required autofocus>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-semibold">Username <span class="text-danger">*</span></label>
+                                <input type="text" name="username" class="form-control" placeholder="johndoe" required>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-semibold">Currency</label>
+                                <select name="currency" class="form-select">
+                                    <option value="INR" selected>INR (₹)</option>
+                                    <option value="USD">USD ($)</option>
+                                    <option value="EUR">EUR (€)</option>
+                                    <option value="GBP">GBP (£)</option>
+                                    <option value="CAD">CAD ($)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" name="email" class="form-control" placeholder="john@example.com" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Password <span class="text-danger">*</span></label>
+                            <input type="password" name="password" class="form-control" placeholder="Choose a secure password" required minlength="4">
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-3 fs-6 fw-semibold shadow-sm">
+                                <i class="bi bi-check-circle me-1"></i> Register & Get Started
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-4 pt-3 border-top">
+                        <span class="text-muted small">Already have an account?</span>
+                        <a href="{{ url_for('login') }}" class="text-primary small fw-semibold ms-1">Sign In</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

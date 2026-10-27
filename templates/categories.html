@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Category Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-4">
+
+    <!-- Header Section -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h3 class="fw-bold mb-1">Expense Categories</h3>
+            <p class="text-muted small mb-0">Organize your expenses into default and custom user categories.</p>
+        </div>
+
+        <button class="btn btn-primary btn-sm rounded-pill px-3 py-1.5 shadow-sm d-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#newCategoryModal">
+            <i class="bi bi-plus-lg"></i> Create Custom Category
+        </button>
+    </div>
+
+    <!-- Category Cards Grid -->
+    <div class="row g-3">
+        {% for cat in categories %}
+        <div class="col-sm-6 col-md-4 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2.5">
+                        <div class="rounded-3 p-2 d-flex align-items-center justify-content-center text-white" style="width: 42px; height: 42px; background-color: {{ cat.color }};">
+                            <i class="bi {{ cat.icon }} fs-5"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-0 text-dark">{{ cat.name }}</h6>
+                            <small class="text-muted">{{ cat.usage_count }} expense record(s)</small>
+                        </div>
+                    </div>
+
+                    {% if cat.user_id %}
+                        <form action="{{ url_for('delete_category', category_id=cat.category_id) }}" method="POST" onsubmit="return confirm('Delete this custom category? Note: Foreign key RESTRICT constraint prevents deletion if expenses are associated.');">
+                            <button type="submit" class="btn btn-outline-danger btn-sm border-0" title="Delete Custom Category">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    {% else %}
+                        <span class="badge bg-light text-muted border" title="System default category">Default</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- Create Custom Category Modal -->
+<div class="modal fade" id="newCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ url_for('categories') }}" method="POST">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fs-6 fw-bold">Create Custom Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-medium small">Category Name</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Pet Care, Fitness, Subscriptions" required maxlength="50">
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-medium small">Accent Color</label>
+                            <input type="color" name="color" class="form-control form-control-color w-100" value="#4f46e5" title="Choose color">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-medium small">Icon</label>
+                            <select name="icon" class="form-select">
+                                <option value="bi-tag" selected>Tag</option>
+                                <option value="bi-heart">Heart</option>
+                                <option value="bi-trophy">Fitness</option>
+                                <option value="bi-gift">Gift</option>
+                                <option value="bi-laptop">Electronics</option>
+                                <option value="bi-house">Home</option>
+                                <option value="bi-camera">Media</option>
+                                <option value="bi-paw">Pet</option>
+                                <option value="bi-cup-straw">Drinks</option>
+                                <option value="bi-fuel-pump">Fuel</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4">Create Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

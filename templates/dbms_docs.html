@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+
+{% block title %}DBMS Architecture & Viva Guide{% endblock %}
+
+{% block extra_head %}
+<!-- Mermaid.js for interactive ER Diagram rendering -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-4">
+
+    <!-- Header Section -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h3 class="fw-bold mb-0">DBMS Architecture & Viva Guide</h3>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">Academic Grade</span>
+            </div>
+            <p class="text-muted small mb-0">Complete relational schema, ER diagram, 3NF normalization proof, triggers, views, and stored procedures documentation.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ url_for('download_pdf') }}" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF Report
+            </a>
+            <a href="{{ url_for('export_csv') }}" class="btn btn-outline-dark btn-sm rounded-pill px-3">
+                <i class="bi bi-file-earmark-arrow-down me-1"></i> Export Data
+            </a>
+        </div>
+    </div>
+
+    <!-- System Status Card -->
+    <div class="card border-0 bg-white mb-4 shadow-sm">
+        <div class="card-body p-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-hdd-network text-primary me-2"></i> Database Runtime Configuration</h6>
+            <div class="row g-3">
+                <div class="col-sm-6 col-md-3">
+                    <span class="text-muted small d-block">Active Engine</span>
+                    <strong class="fs-6 {% if active_engine == 'MYSQL' %}text-success{% else %}text-primary{% endif %}">
+                        <i class="bi bi-database me-1"></i> {{ active_engine }}
+                    </strong>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <span class="text-muted small d-block">Target MySQL Database</span>
+                    <strong class="fs-6 text-dark">{{ db_meta.database }}</strong>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <span class="text-muted small d-block">Host & Port</span>
+                    <strong class="fs-6 text-dark">{{ db_meta.host }}:{{ db_meta.port }}</strong>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <span class="text-muted small d-block">MySQL User</span>
+                    <strong class="fs-6 text-dark">{{ db_meta.user }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs for Sections -->
+    <ul class="nav nav-pills mb-4 gap-2" id="dbmsTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active rounded-pill px-3" data-bs-toggle="pill" data-bs-target="#tab-er" type="button">
+                <i class="bi bi-diagram-3 me-1"></i> ER Diagram
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link rounded-pill px-3" data-bs-toggle="pill" data-bs-target="#tab-schema" type="button">
+                <i class="bi bi-table me-1"></i> Relational Schema & 3NF
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link rounded-pill px-3" data-bs-toggle="pill" data-bs-target="#tab-triggers" type="button">
+                <i class="bi bi-lightning-charge me-1"></i> Triggers & Views
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link rounded-pill px-3" data-bs-toggle="pill" data-bs-target="#tab-setup" type="button">
+                <i class="bi bi-gear-fill me-1"></i> MySQL Setup Guide
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tabs Content -->
+    <div class="tab-content" id="dbmsTabsContent">
+
+        <!-- Tab 1: ER Diagram -->
+        <div class="tab-pane fade show active" id="tab-er">
+            <div class="card border-0 shadow-sm p-4 bg-white mb-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-diagram-2 text-primary me-2"></i> Entity-Relationship (ER) Diagram</h5>
+                <p class="text-muted small">Rendered with Mermaid showing Entities, Attributes (Primary Keys [PK] and Foreign Keys [FK]), and Cardinalities.</p>
+                
+                <div class="p-3 bg-light rounded-3 text-center overflow-auto mb-4">
+                    <pre class="mermaid" style="background: transparent;">
+erDiagram
+    USERS ||--o{ EXPENSES : logs
+    USERS ||--o{ BUDGETS : defines
+    USERS ||--o{ CATEGORIES : creates_custom
+    USERS ||--o{ EXPENSE_AUDIT_LOGS : owns
+
+    CATEGORIES ||--o{ EXPENSES : classifies
+    CATEGORIES ||--o{ BUDGETS : targets
+
+    PAYMENT_METHODS ||--o{ EXPENSES : facilitates
+
+    EXPENSES ||--o{ EXPENSE_AUDIT_LOGS : triggers
+
+    USERS {
+        int user_id PK
+        string username UK
+        string email UK
+        string password_hash
+        string full_name
+        string currency
+        timestamp created_at
+    }
+
+    CATEGORIES {
+        int category_id PK
+        int user_id FK "NULL for default"
+        string name
+        string icon
+        string color
+        timestamp created_at
+    }
+
+    PAYMENT_METHODS {
+        int payment_method_id PK
+        string method_name UK
+        string icon
+    }
+
+    EXPENSES {
+        int expense_id PK
+        int user_id FK
+        int category_id FK
+        int payment_method_id FK
+        decimal amount "CHECK > 0"
+        date expense_date
+        string description
+        timestamp created_at
+    }
+
+    BUDGETS {
+        int budget_id PK
+        int user_id FK
+        int category_id FK
+        int month "1 to 12"
+        int year
+        decimal monthly_limit "CHECK > 0"
+    }
+
+    EXPENSE_AUDIT_LOGS {
+        int log_id PK
+        int expense_id FK
+        int user_id FK
+        string action "INSERT|UPDATE|DELETE"
+        decimal old_amount
+        decimal new_amount
+        timestamp action_timestamp
+        string details
+    }
+                    </pre>
+                </div>
+
+                <h6 class="fw-bold mt-2 mb-2">Key Cardinality Relationships:</h6>
+                <ul class="text-muted small">
+                    <li><strong>USERS to EXPENSES (1 : N):</strong> One user can record zero or many expenses. Every expense belongs to exactly one user.</li>
+                    <li><strong>CATEGORIES to EXPENSES (1 : N):</strong> One category can classify multiple expenses. Foreign Key has <code>ON DELETE RESTRICT</code> to prevent orphan records.</li>
+                    <li><strong>PAYMENT_METHODS to EXPENSES (1 : N):</strong> Every expense references a validated payment method.</li>
+                    <li><strong>USERS to BUDGETS (1 : N):</strong> A user sets monthly budget limits per category with a <code>UNIQUE(user_id, category_id, month, year)</code> composite constraint.</li>
+                    <li><strong>EXPENSES to EXPENSE_AUDIT_LOGS (1 : N):</strong> Automatic audit trail captured through database triggers.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Tab 2: Relational Schema & 3NF -->
+        <div class="tab-pane fade" id="tab-schema">
+            <div class="card border-0 shadow-sm p-4 bg-white mb-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-file-earmark-text text-primary me-2"></i> Relational Schema & Normalization (3NF)</h5>
+
+                <h6 class="fw-semibold text-primary">Relational Notation:</h6>
+                <div class="p-3 bg-light rounded-3 font-monospace small mb-4">
+                    1. USERS (<ins>user_id</ins>, username, email, password_hash, full_name, currency, created_at)<br>
+                    2. CATEGORIES (<ins>category_id</ins>, <em>user_id</em>, name, icon, color, created_at)<br>
+                    3. PAYMENT_METHODS (<ins>payment_method_id</ins>, method_name, icon)<br>
+                    4. EXPENSES (<ins>expense_id</ins>, <em>user_id</em>, <em>category_id</em>, <em>payment_method_id</em>, amount, expense_date, description, created_at)<br>
+                    5. BUDGETS (<ins>budget_id</ins>, <em>user_id</em>, <em>category_id</em>, month, year, monthly_limit, created_at)<br>
+                    6. EXPENSE_AUDIT_LOGS (<ins>log_id</ins>, expense_id, <em>user_id</em>, action, old_amount, new_amount, action_timestamp, details)
+                </div>
+
+                <h6 class="fw-semibold text-primary">Normalization Justification:</h6>
+                <div class="accordion" id="normAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#norm1">
+                                <strong>1. First Normal Form (1NF) Compliance</strong>
+                            </button>
+                        </h2>
+                        <div id="norm1" class="accordion-collapse collapse show">
+                            <div class="accordion-body small text-muted">
+                                Every table has an atomic primary key (`user_id`, `category_id`, etc.). All attributes hold single, indivisible (atomic) values. No repeating groups or comma-separated lists (e.g. categories and payment methods are separated into distinct relations).
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#norm2">
+                                <strong>2. Second Normal Form (2NF) Compliance</strong>
+                            </button>
+                        </h2>
+                        <div id="norm2" class="accordion-collapse collapse">
+                            <div class="accordion-body small text-muted">
+                                The schema satisfies 1NF. Every non-prime attribute is fully functionally dependent on the entire primary key. In relations with composite unique constraints (such as `budgets`), the attribute `monthly_limit` depends on the full tuple `(user_id, category_id, month, year)`, eliminating partial dependency.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#norm3">
+                                <strong>3. Third Normal Form (3NF) Compliance</strong>
+                            </button>
+                        </h2>
+                        <div id="norm3" class="accordion-collapse collapse">
+                            <div class="accordion-body small text-muted">
+                                The schema satisfies 2NF. There are no transitive dependencies (`X -> Y -> Z`). For instance, `expenses` stores `category_id` rather than category name, color, or icon. Category attributes depend strictly on `category_id`.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Triggers & Views -->
+        <div class="tab-pane fade" id="tab-triggers">
+            <div class="card border-0 shadow-sm p-4 bg-white mb-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-code-slash text-primary me-2"></i> Database Triggers & Views Code</h5>
+
+                <h6 class="fw-semibold text-primary">1. Database Trigger: After Expense Insert</h6>
+                <pre class="bg-dark text-light p-3 rounded-3 small"><code>DELIMITER $$
+CREATE TRIGGER `trg_after_expense_insert`
+AFTER INSERT ON `expenses`
+FOR EACH ROW
+BEGIN
+    INSERT INTO `expense_audit_logs` (
+        `expense_id`, `user_id`, `action`, `old_amount`, `new_amount`, `details`
+    ) VALUES (
+        NEW.`expense_id`, NEW.`user_id`, 'INSERT', NULL, NEW.`amount`, 
+        CONCAT('Created expense: ', NEW.`description`)
+    );
+END$$
+DELIMITER ;</code></pre>
+
+                <h6 class="fw-semibold text-primary mt-4">2. Database View: Monthly Category Summary</h6>
+                <pre class="bg-dark text-light p-3 rounded-3 small"><code>CREATE OR REPLACE VIEW `vw_monthly_category_summary` AS
+SELECT 
+    e.`user_id`,
+    YEAR(e.`expense_date`) AS `expense_year`,
+    MONTH(e.`expense_date`) AS `expense_month`,
+    c.`category_id`,
+    c.`name` AS `category_name`,
+    c.`color` AS `category_color`,
+    COUNT(e.`expense_id`) AS `total_transactions`,
+    SUM(e.`amount`) AS `total_spent`
+FROM `expenses` e
+JOIN `categories` c ON e.`category_id` = c.`category_id`
+GROUP BY e.`user_id`, YEAR(e.`expense_date`), MONTH(e.`expense_date`), c.`category_id`, c.`name`, c.`color`;</code></pre>
+
+                <h6 class="fw-semibold text-primary mt-4">3. Database View: Budget Status vs Actual Spending</h6>
+                <pre class="bg-dark text-light p-3 rounded-3 small"><code>CREATE OR REPLACE VIEW `vw_budget_status` AS
+SELECT 
+    b.`budget_id`,
+    b.`user_id`,
+    b.`category_id`,
+    c.`name` AS `category_name`,
+    c.`color` AS `category_color`,
+    b.`month`,
+    b.`year`,
+    b.`monthly_limit`,
+    COALESCE(SUM(e.`amount`), 0.00) AS `spent_amount`,
+    (b.`monthly_limit` - COALESCE(SUM(e.`amount`), 0.00)) AS `remaining_amount`,
+    ROUND((COALESCE(SUM(e.`amount`), 0.00) / b.`monthly_limit`) * 100, 2) AS `percentage_used`
+FROM `budgets` b
+JOIN `categories` c ON b.`category_id` = c.`category_id`
+LEFT JOIN `expenses` e ON e.`user_id` = b.`user_id` 
+    AND e.`category_id` = b.`category_id`
+    AND MONTH(e.`expense_date`) = b.`month`
+    AND YEAR(e.`expense_date`) = b.`year`
+GROUP BY b.`budget_id`, b.`user_id`, b.`category_id`, c.`name`, c.`color`, b.`month`, b.`year`, b.`monthly_limit`;</code></pre>
+            </div>
+        </div>
+
+        <!-- Tab 4: Setup Guide -->
+        <div class="tab-pane fade" id="tab-setup">
+            <div class="card border-0 shadow-sm p-4 bg-white mb-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-gear-wide-connected text-primary me-2"></i> MySQL Setup & Submission Guide</h5>
+                
+                <h6 class="fw-semibold text-primary">How to run with MySQL (XAMPP / MySQL Workbench / Terminal):</h6>
+                <ol class="small text-muted mb-4">
+                    <li class="mb-2">
+                        <strong>Start MySQL:</strong> If using XAMPP or MAMP, start the <strong>MySQL</strong> service. If using Homebrew/standalone MySQL, run <code>mysql.server start</code>.
+                    </li>
+                    <li class="mb-2">
+                        <strong>Import the SQL Schema:</strong>
+                        <div class="bg-dark text-light p-2 rounded-2 mt-1 font-monospace">
+                            mysql -u root -p < database/schema.sql
+                        </div>
+                        Or open <strong>phpMyAdmin</strong> (<a href="http://localhost/phpmyadmin" target="_blank">http://localhost/phpmyadmin</a>), click <em>Import</em>, choose <code>database/schema.sql</code>, and click <em>Go</em>.
+                    </li>
+                    <li class="mb-2">
+                        <strong>Configure Environment:</strong> Check the <code>.env</code> file in the project root:
+                        <div class="bg-light p-2 rounded-2 mt-1 font-monospace">
+                            DB_ENGINE=mysql<br>
+                            DB_HOST=127.0.0.1<br>
+                            DB_USER=root<br>
+                            DB_PASSWORD=<br>
+                            DB_NAME=expense_tracker_db
+                        </div>
+                    </li>
+                    <li class="mb-2">
+                        <strong>Run the Web App:</strong>
+                        <div class="bg-dark text-light p-2 rounded-2 mt-1 font-monospace">
+                            ./venv/bin/python3 app.py
+                        </div>
+                        Visit <a href="http://127.0.0.1:5000" target="_blank">http://127.0.0.1:5000</a> in your web browser.
+                    </li>
+                </ol>
+
+                <div class="alert alert-info small mb-0">
+                    <i class="bi bi-info-circle-fill me-1"></i>
+                    <strong>Dual-Engine Compatibility:</strong> If MySQL is not running on your computer, the application automatically falls back to the embedded <strong>SQLite</strong> database with the exact same relational triggers, views, and integrity rules, so you can test and present without connection failures!
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Logs (Triggers Showcase){% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-4">
+
+    <!-- Header Section -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h3 class="fw-bold mb-0">Database Trigger Audit Logs</h3>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1">DBMS Trigger Feature</span>
+            </div>
+            <p class="text-muted small mb-0">Automatic real-time change audit trail generated exclusively by RDBMS triggers (<code>AFTER INSERT</code>, <code>AFTER UPDATE</code>, <code>AFTER DELETE</code>).</p>
+        </div>
+    </div>
+
+    <!-- Trigger Architecture Explanation Banner -->
+    <div class="card border-0 bg-primary-subtle mb-4">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h6 class="fw-bold text-primary mb-2"><i class="bi bi-cpu-fill me-1"></i> How Database Triggers Work Here:</h6>
+                    <p class="small text-secondary mb-0">
+                        Whenever an expense row is created, modified, or removed from the <code>expenses</code> table, the RDBMS engine automatically fires <code>trg_after_expense_insert</code>, <code>trg_after_expense_update</code>, or <code>trg_after_expense_delete</code>. No manual application logging is performed — logging is guaranteed at the database engine level adhering to ACID compliance.
+                    </p>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <a href="{{ url_for('dbms_docs') }}" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+                        <i class="bi bi-file-code me-1"></i> View Trigger SQL Code
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Logs Table -->
+    <div class="card border-0">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0 text-dark">
+                <i class="bi bi-shield-check text-success me-1"></i> Trigger Execution History (<code>expense_audit_logs</code>)
+            </h6>
+            <span class="badge bg-light text-muted border">{{ logs|length }} Audit Events</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr class="text-muted small">
+                            <th>Log ID</th>
+                            <th>Action Type</th>
+                            <th>Expense ID</th>
+                            <th>Old Amount</th>
+                            <th>New Amount</th>
+                            <th>Details / Notes</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td class="text-muted small">#{{ log.log_id }}</td>
+                            <td>
+                                {% if log.action == 'INSERT' %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-plus-lg me-1"></i> INSERT</span>
+                                {% elif log.action == 'UPDATE' %}
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1"><i class="bi bi-arrow-repeat me-1"></i> UPDATE</span>
+                                {% elif log.action == 'DELETE' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1"><i class="bi bi-trash me-1"></i> DELETE</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-semibold">Expense #{{ log.expense_id }}</td>
+                            <td>
+                                {% if log.old_amount is not none %}
+                                    <span class="text-secondary">{{ log.old_amount|format_currency }}</span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.new_amount is not none %}
+                                    <span class="fw-bold text-dark">{{ log.new_amount|format_currency }}</span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted small">{{ log.details or '-' }}</td>
+                            <td class="text-muted small">{{ log.action_timestamp }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-shield-slash fs-1 opacity-25"></i>
+                                <p class="mt-2 mb-0">No trigger audit logs recorded yet. Add, edit, or delete an expense to see triggers fire!</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
